@@ -5,6 +5,10 @@ import System from "../../../../models/system";
 import showToast from "../../../../utils/toast";
 import Directory from "./Directory";
 import WorkspaceDirectory from "./WorkspaceDirectory";
+import {
+  DEFAULT_DIRECTORY_SORT,
+  DEFAULT_WORKSPACE_SORT,
+} from "./sortDocuments";
 
 // OpenAI Cost per token
 // ref: https://openai.com/pricing#:~:text=%C2%A0/%201K%20tokens-,Embedding%20models,-Build%20advanced%20search
@@ -25,6 +29,19 @@ export default function DocumentSettings({ workspace, systemSettings }) {
   const [movedItems, setMovedItems] = useState([]);
   const [embeddingsCost, setEmbeddingsCost] = useState(0);
   const [loadingMessage, setLoadingMessage] = useState("");
+  const [directorySort, setDirectorySort] = useState(DEFAULT_DIRECTORY_SORT);
+  const [workspaceSort, setWorkspaceSort] = useState(DEFAULT_WORKSPACE_SORT);
+
+  function handleWorkspaceSortChange(nextSort) {
+    setWorkspaceSort((currentSort) => {
+      const resolvedSort =
+        typeof nextSort === "function" ? nextSort(currentSort) : nextSort;
+      return {
+        ...resolvedSort,
+        customSortApplied: true,
+      };
+    });
+  }
 
   async function fetchKeys(refetchWorkspace = false) {
     setLoading(true);
@@ -207,6 +224,8 @@ export default function DocumentSettings({ workspace, systemSettings }) {
         setHighlightWorkspace={setHighlightWorkspace}
         moveToWorkspace={moveSelectedItemsToWorkspace}
         setLoadingMessage={setLoadingMessage}
+        sortState={directorySort}
+        setSortState={setDirectorySort}
       />
       <div className="upload-modal-arrow">
         <ArrowsDownUp className="text-white text-base font-bold rotate-90 w-11 h-11" />
@@ -224,6 +243,8 @@ export default function DocumentSettings({ workspace, systemSettings }) {
         saveChanges={updateWorkspace}
         embeddingCosts={embeddingsCost}
         movedItems={movedItems}
+        sortState={workspaceSort}
+        setSortState={handleWorkspaceSortChange}
       />
     </div>
   );

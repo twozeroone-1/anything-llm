@@ -16,6 +16,8 @@ import { filterFileSearchResults } from "./utils";
 import ContextMenu from "./ContextMenu";
 import { Tooltip } from "react-tooltip";
 import { safeJsonParse } from "@/utils/request";
+import SortControl from "../SortControl";
+import { sortDirectoryFolders } from "../sortDocuments";
 
 function Directory({
   files,
@@ -30,6 +32,8 @@ function Directory({
   moveToWorkspace,
   setLoadingMessage,
   loadingMessage,
+  sortState,
+  setSortState,
 }) {
   const { t } = useTranslation();
   const [amountSelected, setAmountSelected] = useState(0);
@@ -182,7 +186,10 @@ function Directory({
     setSearchTerm(searchValue);
   }, 500);
 
-  const filteredFiles = filterFileSearchResults(files, searchTerm);
+  const filteredFiles = sortDirectoryFolders(
+    filterFileSearchResults(files, searchTerm),
+    sortState
+  );
 
   const handleContextMenu = (event) => {
     event.preventDefault();
@@ -196,40 +203,49 @@ function Directory({
   return (
     <>
       <div className="px-8 pb-8" onContextMenu={handleContextMenu}>
-        <div className="flex flex-col gap-y-6">
-          <div className="flex items-center justify-between w-[560px] px-5 relative">
-            <h3 className="text-white text-base font-bold">
-              {t("connectors.directory.my-documents")}
-            </h3>
-            <div className="relative">
-              <input
-                type="search"
-                placeholder={t("connectors.directory.search-document")}
-                onChange={handleSearch}
-                className="border-none search-input bg-theme-settings-input-bg text-white placeholder:text-theme-settings-input-placeholder focus:outline-primary-button active:outline-primary-button outline-none text-sm rounded-lg pl-9 pr-2.5 py-2 w-[250px] h-[32px] light:border-theme-modal-border light:border"
-              />
-              <MagnifyingGlass
-                size={14}
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white"
-                weight="bold"
+        <div className="flex flex-col gap-y-4">
+          <div className="w-[560px] px-5 relative flex flex-col gap-y-2">
+            <div className="flex items-center justify-between gap-x-3">
+              <h3 className="text-white text-base font-bold">
+                {t("connectors.directory.my-documents")}
+              </h3>
+              <SortControl
+                sortState={sortState}
+                setSortState={setSortState}
+                idPrefix="directory"
               />
             </div>
-            <button
-              className="border-none flex items-center gap-x-2 cursor-pointer px-[14px] py-[7px] -mr-[14px] rounded-lg hover:bg-theme-sidebar-subitem-hover z-20 relative"
-              onClick={openFolderModal}
-            >
-              <Plus
-                size={18}
-                weight="bold"
-                className="text-theme-text-primary light:text-[#0ba5ec]"
-              />
-              <div className="text-theme-text-primary light:text-[#0ba5ec] text-xs font-bold leading-[18px]">
-                {t("connectors.directory.new-folder")}
+            <div className="flex items-center justify-between gap-x-3">
+              <div className="relative flex-1">
+                <input
+                  type="search"
+                  placeholder={t("connectors.directory.search-document")}
+                  onChange={handleSearch}
+                  className="border-none search-input bg-theme-settings-input-bg text-white placeholder:text-theme-settings-input-placeholder focus:outline-primary-button active:outline-primary-button outline-none text-sm rounded-lg pl-9 pr-2.5 py-2 w-full h-[32px] light:border-theme-modal-border light:border"
+                />
+                <MagnifyingGlass
+                  size={14}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white"
+                  weight="bold"
+                />
               </div>
-            </button>
+              <button
+                className="border-none flex items-center gap-x-2 cursor-pointer px-[14px] py-[7px] -mr-[14px] rounded-lg hover:bg-theme-sidebar-subitem-hover z-20 relative shrink-0"
+                onClick={openFolderModal}
+              >
+                <Plus
+                  size={18}
+                  weight="bold"
+                  className="text-theme-text-primary light:text-[#0ba5ec]"
+                />
+                <div className="text-theme-text-primary light:text-[#0ba5ec] text-xs font-bold leading-[18px]">
+                  {t("connectors.directory.new-folder")}
+                </div>
+              </button>
+            </div>
           </div>
 
-          <div className="relative w-[560px] h-[310px] bg-theme-settings-input-bg rounded-2xl overflow-hidden border border-theme-modal-border">
+          <div className="relative w-[560px] h-[280px] bg-theme-settings-input-bg rounded-2xl overflow-hidden border border-theme-modal-border">
             <div className="absolute top-0 left-0 right-0 z-10 rounded-t-2xl text-theme-text-primary text-xs grid grid-cols-12 py-2 px-8 border-b border-white/20 light:border-theme-modal-border bg-theme-settings-input-bg">
               <p className="col-span-6">Name</p>
             </div>

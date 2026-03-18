@@ -11,6 +11,8 @@ import Workspace from "@/models/workspace";
 import { Tooltip } from "react-tooltip";
 import { safeJsonParse } from "@/utils/request";
 import { useTranslation } from "react-i18next";
+import SortControl from "../SortControl";
+import { getWorkspaceDisplayItems } from "../sortDocuments";
 
 function WorkspaceDirectory({
   workspace,
@@ -25,6 +27,8 @@ function WorkspaceDirectory({
   saveChanges,
   embeddingCosts,
   movedItems,
+  sortState,
+  setSortState,
 }) {
   const { t } = useTranslation();
   const [selectedItems, setSelectedItems] = useState({});
@@ -90,10 +94,15 @@ function WorkspaceDirectory({
   if (loading) {
     return (
       <div className="px-8">
-        <div className="flex items-center justify-start w-[560px]">
+        <div className="flex items-center justify-between w-[560px] gap-x-3">
           <h3 className="text-white text-base font-bold ml-5">
             {workspace.name}
           </h3>
+          <SortControl
+            sortState={sortState}
+            setSortState={setSortState}
+            idPrefix="workspace"
+          />
         </div>
         <div className="relative w-[560px] h-[445px] bg-theme-settings-input-bg rounded-2xl mt-5 border border-theme-modal-border">
           <div className="text-white/80 text-xs grid grid-cols-12 py-2 px-3.5 border-b border-white/20 light:border-theme-modal-border bg-theme-settings-input-bg sticky top-0 z-10 rounded-t-2xl">
@@ -117,10 +126,15 @@ function WorkspaceDirectory({
   return (
     <>
       <div className="px-8">
-        <div className="flex items-center justify-start w-[560px]">
+        <div className="flex items-center justify-between w-[560px] gap-x-3">
           <h3 className="text-white text-base font-bold ml-5">
             {workspace.name}
           </h3>
+          <SortControl
+            sortState={sortState}
+            setSortState={setSortState}
+            idPrefix="workspace"
+          />
         </div>
         <div className="relative w-[560px] h-[445px] mt-5">
           <div
@@ -166,6 +180,7 @@ function WorkspaceDirectory({
                   files={files}
                   movedItems={movedItems}
                   workspace={workspace}
+                  sortState={sortState}
                 >
                   {({ item, folder }) => (
                     <WorkspaceFileRow
@@ -388,29 +403,22 @@ const DocumentWatchAlert = memo(() => {
   );
 });
 
-function RenderFileRows({ files, movedItems, children, workspace }) {
-  function sortMovedItemsAndFiles(a, b) {
-    const aIsMovedItem = movedItems.some((movedItem) => movedItem.id === a.id);
-    const bIsMovedItem = movedItems.some((movedItem) => movedItem.id === b.id);
-    if (aIsMovedItem && !bIsMovedItem) return -1;
-    if (!aIsMovedItem && bIsMovedItem) return 1;
+function RenderFileRows({ files, movedItems, children, workspace, sortState }) {
+  const flattenedItems = files.items.flatMap((folder) =>
+    folder.items.map((item) => ({ item, folder }))
+  );
 
-    // Sort pinned items to the top
-    const aIsPinned = a.pinnedWorkspaces?.includes(workspace.id);
-    const bIsPinned = b.pinnedWorkspaces?.includes(workspace.id);
-    if (aIsPinned && !bIsPinned) return -1;
-    if (!aIsPinned && bIsPinned) return 1;
-
-    return 0;
-  }
-
-  return files.items
-    .flatMap((folder) => folder.items)
-    .sort(sortMovedItemsAndFiles)
-    .map((item) => {
-      const folder = files.items.find((f) => f.items.includes(item));
-      return children({ item, folder });
-    });
+  return getWorkspaceDisplayItems(
+    flattenedItems.map(({ item }) => item),
+    {
+      workspace,
+      movedItems,
+      sortState,
+    }
+  ).map((item) => {
+    const fileMatch = flattenedItems.find((entry) => entry.item.id === item.id);
+    return children({ item, folder: fileMatch.folder });
+  });
 }
 
 /**
