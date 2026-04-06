@@ -614,16 +614,32 @@ const System = {
         return { models: [], error: e.message };
       });
   },
-  chats: async (offset = 0) => {
+  chats: async (options = 0) => {
+    const normalizedOptions =
+      typeof options === "number" ? { offset: options } : options || {};
+    const {
+      offset = 0,
+      limit = 20,
+      chatSource = "all",
+      workspaceSlug = "",
+      apiSessionId = "",
+    } = normalizedOptions;
+
     return await fetch(`${API_BASE}/system/workspace-chats`, {
       method: "POST",
       headers: baseHeaders(),
-      body: JSON.stringify({ offset }),
+      body: JSON.stringify({
+        offset,
+        limit,
+        chatSource,
+        workspaceSlug,
+        apiSessionId,
+      }),
     })
       .then((res) => res.json())
       .catch((e) => {
         console.error(e);
-        return [];
+        return { chats: [], hasPages: false, totalChats: 0 };
       });
   },
   eventLogs: async (offset = 0) => {

@@ -29,6 +29,11 @@ export default function ChatRow({ chat, onDelete }) {
     onDelete(chat.id);
   };
 
+  const chatSourceLabel = chat.api_session_id ? "API Session" : "User";
+  const sessionIdLabel = chat.api_session_id
+    ? truncate(chat.api_session_id, 28)
+    : "-";
+
   return (
     <>
       <tr className="bg-transparent text-white text-opacity-80 text-xs font-medium border-b border-white/10 h-10">
@@ -39,6 +44,13 @@ export default function ChatRow({ chat, onDelete }) {
           {chat.user?.username}
         </td>
         <td className="px-6">{chat.workspace?.name}</td>
+        <td className="px-6 whitespace-nowrap">{chatSourceLabel}</td>
+        <td
+          className="px-6 font-mono text-[11px] text-theme-text-secondary"
+          title={chat.api_session_id || ""}
+        >
+          {sessionIdLabel}
+        </td>
         <td
           onClick={openPromptModal}
           className="px-6 border-transparent cursor-pointer transform transition-transform duration-200 hover:scale-105 hover:shadow-lg"

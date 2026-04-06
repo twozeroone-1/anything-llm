@@ -1155,15 +1155,35 @@ function systemEndpoints(app) {
     ],
     async (request, response) => {
       try {
-        const { offset = 0, limit = 20 } = reqBody(request);
+        const {
+          offset = 0,
+          limit = 20,
+          chatSource = "all",
+          workspaceSlug = null,
+          apiSessionId = null,
+        } = reqBody(request);
+        const pageOffset = Math.max(Number(offset) || 0, 0);
+        const pageSize = Math.min(Math.max(Number(limit) || 20, 1), 100);
+        const { clause, workspace, workspaceSlug: normalizedWorkspaceSlug } =
+          await WorkspaceChats.resolveAdminChatFilters({
+            chatSource,
+            workspaceSlug,
+            apiSessionId,
+          });
+
+        if (normalizedWorkspaceSlug && !workspace) {
+          response.status(200).json({ chats: [], hasPages: false, totalChats: 0 });
+          return;
+        }
+
         const chats = await WorkspaceChats.whereWithData(
-          {},
-          limit,
-          offset * limit,
+          clause,
+          pageSize,
+          pageOffset * pageSize,
           { id: "desc" }
         );
-        const totalChats = await WorkspaceChats.count();
-        const hasPages = totalChats > (offset + 1) * limit;
+        const totalChats = await WorkspaceChats.count(clause);
+        const hasPages = totalChats > (pageOffset + 1) * pageSize;
 
         response.status(200).json({ chats: chats, hasPages, totalChats });
       } catch (e) {

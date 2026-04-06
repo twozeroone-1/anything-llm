@@ -105,6 +105,75 @@ const WorkspaceChats = {
     }
   },
 
+  buildAdminChatClause: function ({
+    chatSource = "all",
+    workspaceId = null,
+    apiSessionId = null,
+  } = {}) {
+    const clause = {};
+
+    if (workspaceId !== null && workspaceId !== undefined)
+      clause.workspaceId = Number(workspaceId);
+
+    const normalizedApiSessionId =
+      typeof apiSessionId === "string" ? apiSessionId.trim() : "";
+
+    if (normalizedApiSessionId) {
+      clause.api_session_id = normalizedApiSessionId;
+      return clause;
+    }
+
+    if (chatSource === "api") {
+      clause.api_session_id = { not: null };
+      return clause;
+    }
+
+    if (chatSource === "user") {
+      clause.api_session_id = null;
+      return clause;
+    }
+
+    return clause;
+  },
+
+  resolveAdminChatFilters: async function ({
+    chatSource = "all",
+    workspaceSlug = null,
+    apiSessionId = null,
+  } = {}) {
+    const normalizedWorkspaceSlug =
+      typeof workspaceSlug === "string" ? workspaceSlug.trim() : "";
+
+    if (!normalizedWorkspaceSlug) {
+      return {
+        clause: this.buildAdminChatClause({ chatSource, apiSessionId }),
+        workspace: null,
+        workspaceSlug: null,
+      };
+    }
+
+    const { Workspace } = require("./workspace");
+    const workspace = await Workspace.get({ slug: normalizedWorkspaceSlug });
+
+    if (!workspace) {
+      return {
+        clause: null,
+        workspace: null,
+        workspaceSlug: normalizedWorkspaceSlug,
+      };
+    }
+
+    return {
+      clause: this.buildAdminChatClause({
+        chatSource,
+        workspaceId: workspace.id,
+        apiSessionId,
+      }),
+      workspace: { id: workspace.id, slug: workspace.slug },
+      workspaceSlug: normalizedWorkspaceSlug,
+    };
+  },
+
   /**
    * @deprecated Use markThreadHistoryInvalidV2 instead.
    */

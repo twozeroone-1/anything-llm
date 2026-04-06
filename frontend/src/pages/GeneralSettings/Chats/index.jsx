@@ -47,6 +47,12 @@ const exportOptions = {
   },
 };
 
+const DEFAULT_CHAT_FILTERS = {
+  chatSource: "all",
+  workspaceSlug: "",
+  apiSessionId: "",
+};
+
 export default function WorkspaceChats() {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef();
@@ -56,6 +62,9 @@ export default function WorkspaceChats() {
   const [chats, setChats] = useState([]);
   const [offset, setOffset] = useState(Number(query.get("offset") || 0));
   const [canNext, setCanNext] = useState(false);
+  const [totalChats, setTotalChats] = useState(0);
+  const [draftFilters, setDraftFilters] = useState(DEFAULT_CHAT_FILTERS);
+  const [filters, setFilters] = useState(DEFAULT_CHAT_FILTERS);
   const { t } = useTranslation();
 
   const handleDumpChats = async (exportType) => {
@@ -106,14 +115,39 @@ export default function WorkspaceChats() {
 
   useEffect(() => {
     async function fetchChats() {
-      const { chats: _chats = [], hasPages = false } =
-        await System.chats(offset);
+      setLoading(true);
+      const {
+        chats: _chats = [],
+        hasPages = false,
+        totalChats: _totalChats = 0,
+      } = await System.chats({
+        offset,
+        ...filters,
+      });
       setChats(_chats);
       setCanNext(hasPages);
+      setTotalChats(_totalChats);
       setLoading(false);
     }
     fetchChats();
-  }, [offset]);
+  }, [filters, offset]);
+
+  const applyFilters = () => {
+    setLoading(true);
+    setOffset(0);
+    setFilters({
+      chatSource: draftFilters.chatSource,
+      workspaceSlug: draftFilters.workspaceSlug.trim(),
+      apiSessionId: draftFilters.apiSessionId.trim(),
+    });
+  };
+
+  const resetFilters = () => {
+    setLoading(true);
+    setOffset(0);
+    setDraftFilters(DEFAULT_CHAT_FILTERS);
+    setFilters(DEFAULT_CHAT_FILTERS);
+  };
 
   return (
     <CanViewChatHistory>
@@ -174,6 +208,98 @@ export default function WorkspaceChats() {
               <p className="text-xs leading-[18px] font-base text-theme-text-secondary mt-2">
                 {t("recorded.description")}
               </p>
+              <p className="text-xs leading-[18px] font-base text-theme-text-secondary">
+                {totalChats} matching chats
+              </p>
+            </div>
+            <div className="w-full flex flex-col gap-3 pt-4">
+              <div className="grid grid-cols-1 xl:grid-cols-[180px_minmax(0,1fr)_minmax(0,1fr)_auto] gap-3 items-end">
+                <label className="flex flex-col gap-2 text-xs text-theme-text-secondary">
+                  <span>
+                    {t("recorded.filters.source", {
+                      defaultValue: "Chat Source",
+                    })}
+                  </span>
+                  <select
+                    value={draftFilters.chatSource}
+                    onChange={(event) =>
+                      setDraftFilters((current) => ({
+                        ...current,
+                        chatSource: event.target.value,
+                      }))
+                    }
+                    className="h-[38px] rounded-lg border border-white/10 bg-theme-bg-primary px-3 text-sm text-theme-text-primary outline-none"
+                  >
+                    <option value="all">
+                      {t("recorded.filters.sources.all", {
+                        defaultValue: "All Chats",
+                      })}
+                    </option>
+                    <option value="api">
+                      {t("recorded.filters.sources.api", {
+                        defaultValue: "API Sessions",
+                      })}
+                    </option>
+                    <option value="user">
+                      {t("recorded.filters.sources.user", {
+                        defaultValue: "User Chats",
+                      })}
+                    </option>
+                  </select>
+                </label>
+                <label className="flex flex-col gap-2 text-xs text-theme-text-secondary">
+                  <span>
+                    {t("recorded.filters.workspace", {
+                      defaultValue: "Workspace Slug",
+                    })}
+                  </span>
+                  <input
+                    type="text"
+                    value={draftFilters.workspaceSlug}
+                    onChange={(event) =>
+                      setDraftFilters((current) => ({
+                        ...current,
+                        workspaceSlug: event.target.value,
+                      }))
+                    }
+                    placeholder="2nd"
+                    className="h-[38px] rounded-lg border border-white/10 bg-theme-bg-primary px-3 text-sm text-theme-text-primary outline-none placeholder:text-theme-text-secondary"
+                  />
+                </label>
+                <label className="flex flex-col gap-2 text-xs text-theme-text-secondary">
+                  <span>
+                    {t("recorded.filters.session", {
+                      defaultValue: "API Session ID",
+                    })}
+                  </span>
+                  <input
+                    type="text"
+                    value={draftFilters.apiSessionId}
+                    onChange={(event) =>
+                      setDraftFilters((current) => ({
+                        ...current,
+                        apiSessionId: event.target.value,
+                      }))
+                    }
+                    placeholder="session-123"
+                    className="h-[38px] rounded-lg border border-white/10 bg-theme-bg-primary px-3 text-sm text-theme-text-primary outline-none placeholder:text-theme-text-secondary"
+                  />
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={applyFilters}
+                    className="flex items-center justify-center gap-x-2 px-4 py-1 rounded-lg bg-primary-button hover:light:bg-theme-bg-primary hover:text-theme-text-primary text-xs font-semibold hover:bg-secondary shadow-[0_4px_14px_rgba(0,0,0,0.25)] h-[38px] w-fit"
+                  >
+                    Apply Filters
+                  </button>
+                  <button
+                    onClick={resetFilters}
+                    className="flex items-center justify-center gap-x-2 px-4 py-1 rounded-lg border border-white/10 text-xs font-semibold text-theme-text-secondary hover:border-transparent hover:bg-theme-bg-primary h-[38px] w-fit"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <ChatsContainer
@@ -210,7 +336,6 @@ function ChatsContainer({
   };
 
   const handleDeleteChat = async (chatId) => {
-    await System.deleteChat(chatId);
     setChats((prevChats) => prevChats.filter((chat) => chat.id !== chatId));
   };
 
@@ -230,7 +355,7 @@ function ChatsContainer({
 
   return (
     <>
-      <table className="w-full text-xs text-left rounded-lg min-w-[640px] border-spacing-0">
+      <table className="w-full text-xs text-left rounded-lg min-w-[980px] border-spacing-0">
         <thead className="text-theme-text-secondary text-xs leading-[18px] font-bold uppercase border-white/10 border-b">
           <tr>
             <th scope="col" className="px-6 py-3 rounded-tl-lg">
@@ -241,6 +366,12 @@ function ChatsContainer({
             </th>
             <th scope="col" className="px-6 py-3">
               {t("recorded.table.workspace")}
+            </th>
+            <th scope="col" className="px-6 py-3">
+              {t("recorded.table.source", { defaultValue: "Source" })}
+            </th>
+            <th scope="col" className="px-6 py-3">
+              {t("recorded.table.session", { defaultValue: "Session ID" })}
             </th>
             <th scope="col" className="px-6 py-3">
               {t("recorded.table.prompt")}

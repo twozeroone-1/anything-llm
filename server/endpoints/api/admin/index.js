@@ -697,17 +697,39 @@ function apiAdminEndpoints(app) {
     }
     */
       try {
-        const pgSize = 20;
-        const { offset = 0 } = reqBody(request);
+        const {
+          offset = 0,
+          limit = 20,
+          chatSource = "all",
+          workspaceSlug = null,
+          apiSessionId = null,
+        } = reqBody(request);
+        const pageOffset = Math.max(Number(offset) || 0, 0);
+        const pageSize = Math.min(Math.max(Number(limit) || 20, 1), 100);
+        const { clause, workspace, workspaceSlug: normalizedWorkspaceSlug } =
+          await WorkspaceChats.resolveAdminChatFilters({
+            chatSource,
+            workspaceSlug,
+            apiSessionId,
+          });
+
+        if (normalizedWorkspaceSlug && !workspace) {
+          response
+            .status(200)
+            .json({ chats: [], hasPages: false, totalChats: 0 });
+          return;
+        }
+
         const chats = await WorkspaceChats.whereWithData(
-          {},
-          pgSize,
-          offset * pgSize,
+          clause,
+          pageSize,
+          pageOffset * pageSize,
           { id: "desc" }
         );
 
-        const hasPages = (await WorkspaceChats.count()) > (offset + 1) * pgSize;
-        response.status(200).json({ chats: chats, hasPages });
+        const totalChats = await WorkspaceChats.count(clause);
+        const hasPages = totalChats > (pageOffset + 1) * pageSize;
+        response.status(200).json({ chats: chats, hasPages, totalChats });
       } catch (e) {
         console.error(e);
         response.sendStatus(500).end();
