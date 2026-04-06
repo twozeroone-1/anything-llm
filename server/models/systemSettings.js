@@ -531,6 +531,8 @@ const SystemSettings = {
       GeminiLLMApiKeysCount: getConfiguredGeminiKeyCount("llm"),
       GeminiLLMModelPref:
         process.env.GEMINI_LLM_MODEL_PREF || "gemini-2.0-flash-lite",
+      GeminiLLMMaxOutputTokens:
+        process.env.GEMINI_LLM_MAX_OUTPUT_TOKENS || null,
       GeminiSafetySetting:
         process.env.GEMINI_SAFETY_SETTING || "BLOCK_MEDIUM_AND_ABOVE",
 

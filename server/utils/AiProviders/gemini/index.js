@@ -109,6 +109,35 @@ class GeminiLLM {
     );
   }
 
+  get maxOutputTokens() {
+    const rawValue = process.env.GEMINI_LLM_MAX_OUTPUT_TOKENS;
+    if (!rawValue) return null;
+
+    const parsedValue = Number(rawValue);
+    if (!Number.isInteger(parsedValue) || parsedValue <= 0) return null;
+    return parsedValue;
+  }
+
+  buildChatRequest(
+    messages = null,
+    { temperature = 0.7, stream = false } = {}
+  ) {
+    return {
+      model: this.model,
+      messages,
+      temperature,
+      ...(this.maxOutputTokens ? { max_tokens: this.maxOutputTokens } : {}),
+      ...(stream
+        ? {
+            stream: true,
+            stream_options: {
+              include_usage: true,
+            },
+          }
+        : {}),
+    };
+  }
+
   streamingEnabled() {
     return "streamGetChatCompletion" in this;
   }
@@ -398,16 +427,13 @@ class GeminiLLM {
       withGeminiKeyFallback({
         provider: "llm",
         operation: (apiKey) =>
-          this.createClient(apiKey).chat.completions.create({
-            model: this.model,
-            messages,
-            temperature: temperature,
-          }),
+          this.createClient(apiKey).chat.completions.create(
+            this.buildChatRequest(messages, { temperature })
+          ),
+      }).catch((e) => {
+        console.error(e);
+        throw new Error(e.message);
       })
-        .catch((e) => {
-          console.error(e);
-          throw new Error(e.message);
-        })
     );
 
     if (
@@ -436,15 +462,9 @@ class GeminiLLM {
       func: withGeminiKeyFallback({
         provider: "llm",
         operation: (apiKey) =>
-          this.createClient(apiKey).chat.completions.create({
-            model: this.model,
-            stream: true,
-            messages,
-            temperature: temperature,
-            stream_options: {
-              include_usage: true,
-            },
-          }),
+          this.createClient(apiKey).chat.completions.create(
+            this.buildChatRequest(messages, { temperature, stream: true })
+          ),
       }),
       messages,
       runPromptTokenCalculation: false,

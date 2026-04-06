@@ -41,6 +41,9 @@ jest.mock("../../../../utils/helpers/chat/responses", () => ({
 jest.mock("../../../../utils/http", () => ({
   safeJsonParse: jest.fn(() => []),
 }));
+jest.mock("../../../../utils/AiProviders/modelMap", () => ({
+  MODEL_MAP: new Map(),
+}));
 
 describe("GeminiLLM", () => {
   const originalEnv = process.env;
@@ -81,9 +84,12 @@ describe("GeminiLLM", () => {
       embedChunks: jest.fn(),
     });
 
-    const response = await llm.getChatCompletion([{ role: "user", content: "hi" }], {
-      temperature: 0.7,
-    });
+    const response = await llm.getChatCompletion(
+      [{ role: "user", content: "hi" }],
+      {
+        temperature: 0.7,
+      }
+    );
 
     expect(response.textResponse).toBe("hello from fallback");
     expect(mockChatCreate.mock.calls.map(([apiKey]) => apiKey)).toEqual([
@@ -91,5 +97,72 @@ describe("GeminiLLM", () => {
       "good-llm",
     ]);
     expect(process.env.GEMINI_API_KEY).toBe("good-llm");
+  });
+
+  test("includes Gemini output cap on non-stream chat requests when configured", async () => {
+    process.env.GEMINI_LLM_MAX_OUTPUT_TOKENS = "256";
+    mockChatCreate.mockImplementation(async () => ({
+      choices: [{ message: { content: "short reply" } }],
+      usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 },
+    }));
+
+    const { GeminiLLM } = require("../../../../utils/AiProviders/gemini");
+    const llm = new GeminiLLM({
+      embedTextInput: jest.fn(),
+      embedChunks: jest.fn(),
+    });
+
+    await llm.getChatCompletion([{ role: "user", content: "hi" }], {
+      temperature: 0.7,
+    });
+
+    expect(mockChatCreate).toHaveBeenCalled();
+    expect(mockChatCreate.mock.calls.at(-1)[1]).toMatchObject({
+      model: "gemini-2.0-flash-lite",
+      max_tokens: 256,
+    });
+  });
+
+  test("includes Gemini output cap on stream chat requests when configured", async () => {
+    process.env.GEMINI_LLM_MAX_OUTPUT_TOKENS = "128";
+    mockChatCreate.mockImplementation(async (_apiKey, payload) => payload);
+
+    const { GeminiLLM } = require("../../../../utils/AiProviders/gemini");
+    const llm = new GeminiLLM({
+      embedTextInput: jest.fn(),
+      embedChunks: jest.fn(),
+    });
+
+    await llm.streamGetChatCompletion(
+      [{ role: "user", content: "stream please" }],
+      {
+        temperature: 0.7,
+      }
+    );
+
+    expect(mockChatCreate.mock.calls.at(-1)[1]).toMatchObject({
+      stream: true,
+      max_tokens: 128,
+    });
+  });
+
+  test("omits Gemini output cap when the setting is not configured", async () => {
+    delete process.env.GEMINI_LLM_MAX_OUTPUT_TOKENS;
+    mockChatCreate.mockImplementation(async () => ({
+      choices: [{ message: { content: "default reply" } }],
+      usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 },
+    }));
+
+    const { GeminiLLM } = require("../../../../utils/AiProviders/gemini");
+    const llm = new GeminiLLM({
+      embedTextInput: jest.fn(),
+      embedChunks: jest.fn(),
+    });
+
+    await llm.getChatCompletion([{ role: "user", content: "hi" }], {
+      temperature: 0.7,
+    });
+
+    expect(mockChatCreate.mock.calls.at(-1)[1].max_tokens).toBeUndefined();
   });
 });

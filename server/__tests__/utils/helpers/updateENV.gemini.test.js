@@ -93,4 +93,26 @@ describe("updateENV Gemini multi-key settings", () => {
     expect(process.env.GEMINI_API_KEYS).toBe("gamma,delta");
     expect(process.env.GEMINI_API_KEY).toBe("gamma");
   });
+
+  test("stores Gemini LLM max output tokens as a positive integer string", async () => {
+    const { updateENV } = require("../../../utils/helpers/updateENV");
+
+    const { error } = await updateENV({
+      GeminiLLMMaxOutputTokens: "512",
+    });
+
+    expect(error).toBe(false);
+    expect(process.env.GEMINI_LLM_MAX_OUTPUT_TOKENS).toBe("512");
+  });
+
+  test("rejects Gemini LLM max output tokens when the value is zero", async () => {
+    const { updateENV } = require("../../../utils/helpers/updateENV");
+
+    const { error } = await updateENV({
+      GeminiLLMMaxOutputTokens: "0",
+    });
+
+    expect(typeof error).toBe("string");
+    expect(error).toMatch(/non-zero|greater than zero|greater than 0/i);
+  });
 });

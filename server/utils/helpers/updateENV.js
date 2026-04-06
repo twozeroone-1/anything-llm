@@ -92,6 +92,10 @@ const KEY_MAPPING = {
     envKey: "GEMINI_LLM_MODEL_PREF",
     checks: [isNotEmpty],
   },
+  GeminiLLMMaxOutputTokens: {
+    envKey: "GEMINI_LLM_MAX_OUTPUT_TOKENS",
+    checks: [nonZero],
+  },
   GeminiSafetySetting: {
     envKey: "GEMINI_SAFETY_SETTING",
     checks: [validGeminiSafetySetting],
@@ -1297,7 +1301,8 @@ function shouldApplyClearInstruction(value = null) {
 }
 
 async function clearGeminiLlmKeysIfRequested(newValues = {}) {
-  if (!shouldApplyClearInstruction(newValues.ClearGeminiLLMApiKeys)) return null;
+  if (!shouldApplyClearInstruction(newValues.ClearGeminiLLMApiKeys))
+    return null;
   if (
     typeof newValues.GeminiLLMApiKeys === "string" &&
     newValues.GeminiLLMApiKeys.trim().length > 0

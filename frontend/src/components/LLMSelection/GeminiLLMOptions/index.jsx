@@ -50,7 +50,9 @@ export default function GeminiLLMOptions({ settings, onDirty = () => {} }) {
           />
           <p className="text-xs leading-[18px] font-base text-white text-opacity-60 mt-2">
             Enter one key per line. Saved keys stay hidden.
-            {configuredKeyCount > 0 ? ` ${configuredKeyCount} key(s) saved.` : ""}
+            {configuredKeyCount > 0
+              ? ` ${configuredKeyCount} key(s) saved.`
+              : ""}
           </p>
           {configuredKeyCount > 0 && (
             <>
@@ -81,6 +83,25 @@ export default function GeminiLLMOptions({ settings, onDirty = () => {} }) {
         {!settings?.credentialsOnly && (
           <>
             <GeminiModelSelection apiKey={geminiApiKey} settings={settings} />
+            <div className="flex flex-col w-60">
+              <label className="text-white text-sm font-semibold block mb-3">
+                Gemini max output tokens
+              </label>
+              <input
+                type="number"
+                name="GeminiLLMMaxOutputTokens"
+                className="border-none bg-theme-settings-input-bg text-white placeholder:text-theme-settings-input-placeholder text-sm rounded-lg focus:outline-primary-button active:outline-primary-button outline-none block w-full p-2.5"
+                placeholder="Leave blank to use provider default"
+                min={1}
+                onScroll={(e) => e.target.blur()}
+                defaultValue={settings?.GeminiLLMMaxOutputTokens || ""}
+                autoComplete="off"
+              />
+              <p className="text-xs leading-[18px] font-base text-white text-opacity-60 mt-2">
+                Caps the final Gemini answer length for standard chat and RAG
+                responses.
+              </p>
+            </div>
             {/* 
             
             Safety setting is not supported for Gemini yet due to the openai compatible Gemini API.
