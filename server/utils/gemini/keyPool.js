@@ -146,6 +146,8 @@ function isRetryableGeminiKeyError(error = null) {
   return [
     "invalid key",
     "api key not valid",
+    "api key expired",
+    "renew the api key",
     "quota",
     "rate limit",
   ].some((needle) => lowerMessage.includes(needle));

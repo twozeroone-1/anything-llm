@@ -4,7 +4,7 @@ const { purgeDocument } = require("../../../utils/files/purgeDocument");
 const { getVectorDbClass } = require("../../../utils/helpers");
 const { exportChatsAsType } = require("../../../utils/helpers/chat/convertTo");
 const { dumpENV, updateENV } = require("../../../utils/helpers/updateENV");
-const { reqBody } = require("../../../utils/http");
+const { reqBody, respondJsonError } = require("../../../utils/http");
 const { validApiKey } = require("../../../utils/middleware/validApiKey");
 
 function apiSystemEndpoints(app) {
@@ -144,7 +144,10 @@ function apiSystemEndpoints(app) {
         response.status(200).json({ newValues, error });
       } catch (e) {
         console.error(e.message, e);
-        response.sendStatus(500).end();
+        return respondJsonError(response, e, {
+          statusCode: 500,
+          extra: { newValues: null },
+        });
       }
     }
   );

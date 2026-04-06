@@ -5,6 +5,7 @@ const JWT = require("jsonwebtoken");
 const { User } = require("../../models/user");
 const { jsonrepair } = require("jsonrepair");
 const extract = require("extract-json-from-string");
+const { respondJsonError } = require("./respondJsonError");
 
 function reqBody(request) {
   return typeof request.body === "string"
@@ -132,4 +133,5 @@ module.exports = {
   isValidUrl,
   toValidNumber,
   decodeHtmlEntities,
+  respondJsonError,
 };

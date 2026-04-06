@@ -11,6 +11,7 @@ const {
   userFromSession,
   multiUserMode,
   queryParams,
+  respondJsonError,
 } = require("../utils/http");
 const { handleAssetUpload, handlePfpUpload } = require("../utils/files/multer");
 const { v4 } = require("uuid");
@@ -549,7 +550,10 @@ function systemEndpoints(app) {
         response.status(200).json({ newValues, error });
       } catch (e) {
         console.error(e.message, e);
-        response.sendStatus(500).end();
+        return respondJsonError(response, e, {
+          statusCode: 500,
+          extra: { newValues: null },
+        });
       }
     }
   );

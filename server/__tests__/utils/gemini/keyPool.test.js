@@ -85,6 +85,12 @@ describe("Gemini key pool", () => {
       isRetryableGeminiKeyError({ status: 403, message: "quota exceeded" })
     ).toBe(true);
     expect(
+      isRetryableGeminiKeyError({
+        status: 400,
+        message: "API key expired. Please renew the API key.",
+      })
+    ).toBe(true);
+    expect(
       isRetryableGeminiKeyError({ status: 500, message: "internal server error" })
     ).toBe(false);
   });

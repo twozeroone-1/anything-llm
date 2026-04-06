@@ -69,4 +69,31 @@ describe("GeminiEmbedder", () => {
     ]);
     expect(process.env.GEMINI_EMBEDDING_API_KEY).toBe("good-embed");
   });
+
+  test("falls back to the next Gemini embedding key when the current key is expired", async () => {
+    mockEmbeddingCreate.mockImplementation(async (apiKey, payload) => {
+      if (apiKey === "bad-embed") {
+        const error = new Error("API key expired. Please renew the API key.");
+        error.status = 400;
+        throw error;
+      }
+      return {
+        data: payload.input.map(() => ({
+          embedding: [0.4, 0.5, 0.6],
+        })),
+      };
+    });
+
+    const { GeminiEmbedder } = require("../../../../utils/EmbeddingEngines/gemini");
+
+    const embedder = new GeminiEmbedder();
+    const embedding = await embedder.embedTextInput("hello");
+
+    expect(embedding).toEqual([0.4, 0.5, 0.6]);
+    expect(mockEmbeddingCreate.mock.calls.map(([apiKey]) => apiKey)).toEqual([
+      "bad-embed",
+      "good-embed",
+    ]);
+    expect(process.env.GEMINI_EMBEDDING_API_KEY).toBe("good-embed");
+  });
 });
